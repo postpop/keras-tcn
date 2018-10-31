@@ -92,7 +92,7 @@ def process_dilations(dilations):
 
     else:
         new_dilations = [2 ** i for i in dilations]
-        print(f'Updated dilations from {dilations} to {new_dilations} because of backwards compatibility.')
+        # print(f'Updated dilations from {dilations} to {new_dilations} because of backwards compatibility.')
         return new_dilations
 
 
@@ -217,8 +217,8 @@ def compiled_tcn(num_feat,  # type: int
         x = Dense(num_classes)(x)
         x = Activation('softmax')(x)
         output_layer = x
-        print(f'model.x = {input_layer.shape}')
-        print(f'model.y = {output_layer.shape}')
+        # print(f'model.x = {input_layer.shape}')
+        # print(f'model.y = {output_layer.shape}')
         model = Model(input_layer, output_layer)
 
         # https://github.com/keras-team/keras/pull/11373
@@ -241,8 +241,8 @@ def compiled_tcn(num_feat,  # type: int
         x = Dense(1)(x)
         x = Activation('linear')(x)
         output_layer = x
-        print(f'model.x = {input_layer.shape}')
-        print(f'model.y = {output_layer.shape}')
+        # print(f'model.x = {input_layer.shape}')
+        # print(f'model.y = {output_layer.shape}')
         model = Model(input_layer, output_layer)
         adam = optimizers.Adam(lr=0.002, clipnorm=1.)
         model.compile(adam, loss='mean_squared_error')
