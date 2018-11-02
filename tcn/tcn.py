@@ -123,11 +123,13 @@ class TCN:
                  activation='norm_relu',
                  use_skip_connections=True,
                  dropout_rate=0.0,
+                 padding='causal',
                  return_sequences=True,
                  name='tcn'):
         self.name = name
         self.return_sequences = return_sequences
         self.dropout_rate = dropout_rate
+        self.padding = padding
         self.use_skip_connections = use_skip_connections
         self.activation = activation
         self.dilations = dilations
@@ -139,12 +141,12 @@ class TCN:
         if self.dilations is None:
             self.dilations = [1, 2, 4, 8, 16, 32]
         x = inputs
-        x = Convolution1D(self.nb_filters, 1, padding='causal', name=self.name + '_initial_conv')(x)
+        x = Convolution1D(self.nb_filters, 1, padding='same', name=self.name + '_initial_conv')(x)
         skip_connections = []
         for s in range(self.nb_stacks):
             for i in self.dilations:
                 x, skip_out = residual_block(x, s, i, self.activation, self.nb_filters,
-                                             self.kernel_size, self.dropout_rate, name=self.name, padding='same')
+                                             self.kernel_size, self.dropout_rate, name=self.name, padding=self.padding)
                 skip_connections.append(skip_out)
         if self.use_skip_connections:
             x = keras.layers.add(skip_connections)
@@ -163,6 +165,7 @@ def compiled_tcn(num_feat,  # type: int
                  dilations,  # type: List[int]
                  nb_stacks,  # type: int
                  max_len,  # type: int
+                 padding,  # type: str
                  activation='norm_relu',  # type: str
                  use_skip_connections=True,  # type: bool
                  return_sequences=True,
@@ -197,7 +200,7 @@ def compiled_tcn(num_feat,  # type: int
     input_layer = Input(shape=(max_len, num_feat))
 
     x = TCN(nb_filters, kernel_size, nb_stacks, dilations, activation,
-            use_skip_connections, dropout_rate, return_sequences, name)(input_layer)
+            use_skip_connections, dropout_rate, padding, return_sequences, name)(input_layer)
 
     print('x.shape=', x.shape)
 
