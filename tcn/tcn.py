@@ -44,7 +44,7 @@ def wave_net_activation(x):
     return keras.layers.multiply([tanh_out, sigm_out])
 
 
-def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0, name=''):
+def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0, padding='causal', name=''):
     # type: (Layer, int, int, str, int, int, float, str) -> Tuple[Layer, Layer]
     """Defines the residual block for the WaveNet TCN
 
@@ -65,7 +65,7 @@ def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0,
 
     original_x = x
     conv = Conv1D(filters=nb_filters, kernel_size=kernel_size,
-                  dilation_rate=i, padding='causal',
+                  dilation_rate=i, padding=padding,
                   name=name + '_dilated_conv_%d_tanh_s%d' % (i, s))(x)
     if activation == 'norm_relu':
         x = Activation('relu')(conv)
@@ -75,7 +75,8 @@ def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0,
     else:
         x = Activation(activation)(conv)
 
-    x = SpatialDropout1D(dropout_rate, name=name + '_spatial_dropout1d_%d_s%d_%f' % (i, s, dropout_rate))(x)
+    if dropout_rate > 0:
+        x = SpatialDropout1D(dropout_rate, name=name + '_spatial_dropout1d_%d_s%d_%f' % (i, s, dropout_rate))(x)
 
     # 1x1 conv.
     x = Convolution1D(nb_filters, 1, padding='same')(x)
@@ -92,7 +93,6 @@ def process_dilations(dilations):
 
     else:
         new_dilations = [2 ** i for i in dilations]
-        # print(f'Updated dilations from {dilations} to {new_dilations} because of backwards compatibility.')
         return new_dilations
 
 
@@ -134,17 +134,6 @@ class TCN:
         self.nb_stacks = nb_stacks
         self.kernel_size = kernel_size
         self.nb_filters = nb_filters
-
-        # backwards incompatibility warning.
-        # o = tcn.TCN(i, return_sequences=False) =>
-        # o = tcn.TCN(return_sequences=False)(i)
-
-        if not isinstance(nb_filters, int):
-            print('An interface change occurred after the version 2.1.2.')
-            print('Before: tcn.TCN(i, return_sequences=False, ...)')
-            print('Now should be: tcn.TCN(return_sequences=False, ...)(i)')
-            print('Second solution is to pip install keras-tcn==2.1.2 to downgrade.')
-            raise Exception()
 
     def __call__(self, inputs):
         if self.dilations is None:
@@ -217,8 +206,6 @@ def compiled_tcn(num_feat,  # type: int
         x = Dense(num_classes)(x)
         x = Activation('softmax')(x)
         output_layer = x
-        # print(f'model.x = {input_layer.shape}')
-        # print(f'model.y = {output_layer.shape}')
         model = Model(input_layer, output_layer)
 
         # https://github.com/keras-team/keras/pull/11373
@@ -241,8 +228,6 @@ def compiled_tcn(num_feat,  # type: int
         x = Dense(1)(x)
         x = Activation('linear')(x)
         output_layer = x
-        # print(f'model.x = {input_layer.shape}')
-        # print(f'model.y = {output_layer.shape}')
         model = Model(input_layer, output_layer)
         adam = optimizers.Adam(lr=0.002, clipnorm=1.)
         model.compile(adam, loss='mean_squared_error')
