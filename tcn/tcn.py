@@ -228,7 +228,7 @@ def compiled_tcn(num_feat,  # type: int
         x = Dense(1)(x)
         x = Activation('linear')(x)
         output_layer = x
-       model = Model(input_layer, output_layer)
+        model = Model(input_layer, output_layer)
         adam = optimizers.Adam(lr=0.002, clipnorm=1.)
         model.compile(adam, loss='mean_squared_error')
 
