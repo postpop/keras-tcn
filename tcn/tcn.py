@@ -44,7 +44,7 @@ def wave_net_activation(x):
     return keras.layers.multiply([tanh_out, sigm_out])
 
 
-def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0, padding='causal', name=''):
+def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0, name=''):
     # type: (Layer, int, int, str, int, int, float, str) -> Tuple[Layer, Layer]
     """Defines the residual block for the WaveNet TCN
 
@@ -65,7 +65,7 @@ def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0,
 
     original_x = x
     conv = Conv1D(filters=nb_filters, kernel_size=kernel_size,
-                  dilation_rate=i, padding=padding,
+                  dilation_rate=i, padding='causal',
                   name=name + '_dilated_conv_%d_tanh_s%d' % (i, s))(x)
     if activation == 'norm_relu':
         x = Activation('relu')(conv)
@@ -75,8 +75,7 @@ def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0,
     else:
         x = Activation(activation)(conv)
 
-    if dropout_rate > 0:
-        x = SpatialDropout1D(dropout_rate, name=name + '_spatial_dropout1d_%d_s%d_%f' % (i, s, dropout_rate))(x)
+    x = SpatialDropout1D(dropout_rate, name=name + '_spatial_dropout1d_%d_s%d_%f' % (i, s, dropout_rate))(x)
 
     # 1x1 conv.
     x = Convolution1D(nb_filters, 1, padding='same')(x)
@@ -123,13 +122,11 @@ class TCN:
                  activation='norm_relu',
                  use_skip_connections=True,
                  dropout_rate=0.0,
-                 padding='causal',
                  return_sequences=True,
                  name='tcn'):
         self.name = name
         self.return_sequences = return_sequences
         self.dropout_rate = dropout_rate
-        self.padding = padding
         self.use_skip_connections = use_skip_connections
         self.activation = activation
         self.dilations = dilations
@@ -137,16 +134,17 @@ class TCN:
         self.kernel_size = kernel_size
         self.nb_filters = nb_filters
 
+ 
     def __call__(self, inputs):
         if self.dilations is None:
             self.dilations = [1, 2, 4, 8, 16, 32]
         x = inputs
-        x = Convolution1D(self.nb_filters, 1, padding='same', name=self.name + '_initial_conv')(x)
+        x = Convolution1D(self.nb_filters, 1, padding='causal', name=self.name + '_initial_conv')(x)
         skip_connections = []
         for s in range(self.nb_stacks):
             for i in self.dilations:
                 x, skip_out = residual_block(x, s, i, self.activation, self.nb_filters,
-                                             self.kernel_size, self.dropout_rate, name=self.name, padding=self.padding)
+                                             self.kernel_size, self.dropout_rate, name=self.name)
                 skip_connections.append(skip_out)
         if self.use_skip_connections:
             x = keras.layers.add(skip_connections)
@@ -165,7 +163,6 @@ def compiled_tcn(num_feat,  # type: int
                  dilations,  # type: List[int]
                  nb_stacks,  # type: int
                  max_len,  # type: int
-                 padding,  # type: str
                  activation='norm_relu',  # type: str
                  use_skip_connections=True,  # type: bool
                  return_sequences=True,
@@ -200,7 +197,7 @@ def compiled_tcn(num_feat,  # type: int
     input_layer = Input(shape=(max_len, num_feat))
 
     x = TCN(nb_filters, kernel_size, nb_stacks, dilations, activation,
-            use_skip_connections, dropout_rate, padding, return_sequences, name)(input_layer)
+            use_skip_connections, dropout_rate, return_sequences, name)(input_layer)
 
     print('x.shape=', x.shape)
 
@@ -231,7 +228,7 @@ def compiled_tcn(num_feat,  # type: int
         x = Dense(1)(x)
         x = Activation('linear')(x)
         output_layer = x
-        model = Model(input_layer, output_layer)
+       model = Model(input_layer, output_layer)
         adam = optimizers.Adam(lr=0.002, clipnorm=1.)
         model.compile(adam, loss='mean_squared_error')
 
