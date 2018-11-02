@@ -144,7 +144,7 @@ class TCN:
         for s in range(self.nb_stacks):
             for i in self.dilations:
                 x, skip_out = residual_block(x, s, i, self.activation, self.nb_filters,
-                                             self.kernel_size, self.dropout_rate, name=self.name)
+                                             self.kernel_size, self.dropout_rate, name=self.name, padding='same')
                 skip_connections.append(skip_out)
         if self.use_skip_connections:
             x = keras.layers.add(skip_connections)
