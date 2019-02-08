@@ -109,6 +109,7 @@ class TCN:
             return_sequences: Boolean. Whether to return the last output in the output sequence, or the full sequence.
             dropout_rate: Float between 0 and 1. Fraction of the input units to drop.
             name: Name of the model. Useful when having multiple TCN.
+            padding: 'causal' (default), 'same', or 'valid'
 
         Returns:
             A TCN layer.
@@ -123,7 +124,8 @@ class TCN:
                  use_skip_connections=True,
                  dropout_rate=0.0,
                  return_sequences=True,
-                 name='tcn'):
+                 name='tcn',
+                 padding='causal'):
         self.name = name
         self.return_sequences = return_sequences
         self.dropout_rate = dropout_rate
@@ -133,13 +135,14 @@ class TCN:
         self.nb_stacks = nb_stacks
         self.kernel_size = kernel_size
         self.nb_filters = nb_filters
+        self.padding = padding
 
  
     def __call__(self, inputs):
         if self.dilations is None:
             self.dilations = [1, 2, 4, 8, 16, 32]
         x = inputs
-        x = Convolution1D(self.nb_filters, 1, padding='causal', name=self.name + '_initial_conv')(x)
+        x = Convolution1D(self.nb_filters, 1, padding=self.padding, name=self.name + '_initial_conv')(x)
         skip_connections = []
         for s in range(self.nb_stacks):
             for i in self.dilations:
