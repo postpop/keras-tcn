@@ -44,7 +44,7 @@ def wave_net_activation(x):
     return keras.layers.multiply([tanh_out, sigm_out])
 
 
-def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0, name=''):
+def residual_block(x, s, i, activation, nb_filters, kernel_size, padding='causal', dropout_rate=0, name=''):
     # type: (Layer, int, int, str, int, int, float, str) -> Tuple[Layer, Layer]
     """Defines the residual block for the WaveNet TCN
 
@@ -55,6 +55,7 @@ def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0,
         activation: The name of the type of activation to use
         nb_filters: The number of convolutional filters to use in this block
         kernel_size: The size of the convolutional kernel
+        padding: The padding used in the convolutional layers, 'same' or 'causal'.
         dropout_rate: Float between 0 and 1. Fraction of the input units to drop.
         name: Name of the model. Useful when having multiple TCN.
 
@@ -65,7 +66,7 @@ def residual_block(x, s, i, activation, nb_filters, kernel_size, dropout_rate=0,
 
     original_x = x
     conv = Conv1D(filters=nb_filters, kernel_size=kernel_size,
-                  dilation_rate=i, padding='causal',
+                  dilation_rate=i, padding=padding,
                   name=name + '_dilated_conv_%d_tanh_s%d' % (i, s))(x)
     if activation == 'norm_relu':
         x = Activation('relu')(conv)
@@ -107,9 +108,9 @@ class TCN:
             activation: The activations to use (norm_relu, wavenet, relu...).
             use_skip_connections: Boolean. If we want to add skip connections from input to each residual block.
             return_sequences: Boolean. Whether to return the last output in the output sequence, or the full sequence.
+            padding: The padding to use in the convolutional layers, 'causal' or 'same'.
             dropout_rate: Float between 0 and 1. Fraction of the input units to drop.
             name: Name of the model. Useful when having multiple TCN.
-            padding: 'causal' (default), 'same', or 'valid'
 
         Returns:
             A TCN layer.
@@ -122,10 +123,11 @@ class TCN:
                  dilations=None,
                  activation='norm_relu',
                  use_skip_connections=True,
+                 padding='causal',
                  dropout_rate=0.0,
                  return_sequences=True,
-                 name='tcn',
-                 padding='causal'):
+                 name='tcn'
+                 ):
         self.name = name
         self.return_sequences = return_sequences
         self.dropout_rate = dropout_rate
@@ -147,7 +149,7 @@ class TCN:
         for s in range(self.nb_stacks):
             for i in self.dilations:
                 x, skip_out = residual_block(x, s, i, self.activation, self.nb_filters,
-                                             self.kernel_size, self.dropout_rate, name=self.name)
+                                             self.kernel_size, self.dropout_rate, padding=self.padding, name=self.name)
                 skip_connections.append(skip_out)
         if self.use_skip_connections:
             x = keras.layers.add(skip_connections)
@@ -171,6 +173,7 @@ def compiled_tcn(num_feat,  # type: int
                  return_sequences=True,
                  regression=False,  # type: bool
                  dropout_rate=0.05,  # type: float
+                 padding='causal',
                  name='tcn'  # type: str
                  ):
     # type: (...) -> keras.Model
@@ -188,6 +191,7 @@ def compiled_tcn(num_feat,  # type: int
         use_skip_connections: Boolean. If we want to add skip connections from input to each residual block.
         return_sequences: Boolean. Whether to return the last output in the output sequence, or the full sequence.
         regression: Whether the output should be continuous or discrete.
+        padding: The padding to use in the convolutional layers, 'causal' or 'same'.
         dropout_rate: Float between 0 and 1. Fraction of the input units to drop.
         name: Name of the model. Useful when having multiple TCN.
 
@@ -200,7 +204,7 @@ def compiled_tcn(num_feat,  # type: int
     input_layer = Input(shape=(max_len, num_feat))
 
     x = TCN(nb_filters, kernel_size, nb_stacks, dilations, activation,
-            use_skip_connections, dropout_rate, return_sequences, name)(input_layer)
+            use_skip_connections, padding, dropout_rate, return_sequences, name)(input_layer)
 
     print('x.shape=', x.shape)
 
