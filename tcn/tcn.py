@@ -139,7 +139,7 @@ class TCN:
         self.nb_filters = nb_filters
         self.padding = padding
 
- 
+
     def __call__(self, inputs):
         if self.dilations is None:
             self.dilations = [1, 2, 4, 8, 16, 32]
@@ -149,7 +149,7 @@ class TCN:
         for s in range(self.nb_stacks):
             for i in self.dilations:
                 x, skip_out = residual_block(x, s, i, self.activation, self.nb_filters,
-                                             self.kernel_size, self.dropout_rate, padding=self.padding, name=self.name)
+                                             self.kernel_size, self.padding, self.dropout_rate, name=self.name)
                 skip_connections.append(skip_out)
         if self.use_skip_connections:
             x = keras.layers.add(skip_connections)
@@ -180,7 +180,7 @@ def compiled_tcn(num_feat,  # type: int
     """Creates a compiled TCN model for a given task (i.e. regression or classification).
 
     Args:
-        num_feat: A tensor of shape (batch_size, timesteps, input_dim).
+        num_feat: The number of features of your input, i.e. the last dimension of: (batch_size, timesteps, input_dim).
         num_classes: The size of the final dense layer, how many classes we are predicting.
         nb_filters: The number of filters to use in the convolutional layers.
         kernel_size: The size of the kernel to use in each convolutional layer.
@@ -206,7 +206,7 @@ def compiled_tcn(num_feat,  # type: int
     x = TCN(nb_filters, kernel_size, nb_stacks, dilations, activation,
             use_skip_connections, padding, dropout_rate, return_sequences, name)(input_layer)
 
-    print('x.shape=', x.shape)
+    # print('x.shape=', x.shape)
 
     if not regression:
         # classification
@@ -229,7 +229,7 @@ def compiled_tcn(num_feat,  # type: int
 
         adam = optimizers.Adam(lr=0.002, clipnorm=1.)
         model.compile(adam, loss='sparse_categorical_crossentropy', metrics=[accuracy])
-        print('Adam with norm clipping.')
+        # print('Adam with norm clipping.')
     else:
         # regression
         x = Dense(1)(x)
