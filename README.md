@@ -1,7 +1,11 @@
 # Keras TCN
 
+The tf2.0 version does not require keras anymore since it uses tf.keras
+Manually install tensorflow or tensorflow-gpu 2.0:
 ```
-pip install keras-tcn
+conda install tensorflow>=2
+conda install tensorflow-gpu>=2
+pip install git+https://github.com/postpop/keras-tcn
 ```
 
 *Keras Temporal Convolutional Network*
