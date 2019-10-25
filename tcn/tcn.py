@@ -1,11 +1,13 @@
-import keras.backend as K
-import keras.layers
-from keras import optimizers
-from keras.engine.topology import Layer
-from keras.layers import Activation, Lambda
-from keras.layers import Conv1D, SpatialDropout1D
-from keras.layers import Convolution1D, Dense
-from keras.models import Input, Model
+import tensorflow.keras.backend as K
+import tensorflow.keras.layers
+import tensorflow.keras as keras
+from tensorflow.keras import optimizers
+# from tensorflow.keras.engine.topology import Layer  #only used for type annotations
+from tensorflow.keras.layers import Activation, Lambda
+from tensorflow.keras.layers import Conv1D, SpatialDropout1D
+from tensorflow.keras.layers import Convolution1D, Dense, Layer
+from tensorflow.keras import Input, Model
+
 from typing import List, Tuple
 
 
